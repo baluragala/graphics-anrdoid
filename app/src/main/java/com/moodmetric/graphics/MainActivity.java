@@ -16,7 +16,9 @@ import android.view.View;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 
+import static android.R.attr.data;
 import static android.R.attr.format;
 import static android.R.attr.x;
 import static android.R.attr.y;
@@ -136,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
 
             canvas.save();
             Path path = new Path();
-            List<MMPointer> data = simulateData();
+            List<MMPointer> data = smoothen(smoothen(simulateData()));
             Double tprev = null;
             double t, v;
             for (MMPointer p : data) {
@@ -208,24 +210,24 @@ public class MainActivity extends AppCompatActivity {
 
             // Draw ticks
 
-            int tickr = (int)(r+10);
-            for(int i=0;i<=3;i++) {
-                double angle = (i+1)*Math.PI/2;
-                String tick = String.format("%d", 12-i*3);
-                double tx = ox + tickr*(float)(Math.cos(angle))-40;// - sz.width/2
-                double ty = oy - tickr*(float)(Math.sin(angle))-40;// - sz.height/2
-                canvas.drawText(tick,(float) tx,(float) ty,outerCirclePaint);
+            int tickr = (int) (r + 10);
+            for (int i = 0; i <= 3; i++) {
+                double angle = (i + 1) * Math.PI / 2;
+                String tick = String.format("%d", 12 - i * 3);
+                double tx = ox + tickr * (float) (Math.cos(angle)) - 40;// - sz.width/2
+                double ty = oy - tickr * (float) (Math.sin(angle)) - 40;// - sz.height/2
+                canvas.drawText(tick, (float) tx, (float) ty, outerCirclePaint);
             }
-            Path tickPath=new Path();
-            for(int i=0;i<=11;i++) {
-                double angle = i*Math.PI/6;
-                double x1 = ox + (r-5)*(float)(Math.cos(angle));
-                double y1 = oy - (r-5)*(float)(Math.sin(angle));
-                double x2 = ox + r*(float)(Math.cos(angle));
-                double y2 = oy - r*(float)(Math.sin(angle));
+            Path tickPath = new Path();
+            for (int i = 0; i <= 11; i++) {
+                double angle = i * Math.PI / 6;
+                double x1 = ox + (r - 5) * (float) (Math.cos(angle));
+                double y1 = oy - (r - 5) * (float) (Math.sin(angle));
+                double x2 = ox + r * (float) (Math.cos(angle));
+                double y2 = oy - r * (float) (Math.sin(angle));
                 tickPath.moveTo((float) x1, (float) y1);
                 tickPath.lineTo((float) x2, (float) y2);
-                canvas.drawPath(tickPath,outerCirclePaint);
+                canvas.drawPath(tickPath, outerCirclePaint);
             }
 
 
@@ -317,6 +319,29 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return data;
+    }
+
+    private List<MMPointer> smoothen(List<MMPointer> data) {
+        List<MMPointer> result = new ArrayList<>();
+        for (int i = 0; i < data.size(); i++) {
+            int j0 = Math.max(0, i - 5);
+            double jn = Math.min(data.size(), i + 5);
+            double ti = data.get(i).getT();
+            double sum = 0.0;
+            int n = 0;
+            for (int j = j0; j < jn; j++) {
+                double t = data.get(j).getT();
+                double v = data.get(j).getV();
+                if (Math.abs(ti - t) < 8 * 60.0) {
+                    sum += v;
+                    n += 1;
+                }
+            }
+            result.add(new MMPointer(ti, sum / n));
+
+        }
+        return result;
+
     }
 
 
